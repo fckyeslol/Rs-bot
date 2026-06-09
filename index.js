@@ -55,6 +55,14 @@ const PALABRAS_TRABAJOS = [
   "ejemplos", "muestras", "fotos", "imagenes", "proyectos",
 ];
 
+// Saludos "puros" (el mensaje es SOLO un saludo) → responde Rafa.
+// Si el saludo viene con una petición ("hola, quiero un pendón"), no
+// entra aquí y lo atiende el LLM como conversación.
+const SALUDOS_EXACTOS = [
+  "hola", "buenas", "buenos dias", "buenas tardes", "buenas noches",
+  "buen dia", "que tal", "hey", "hi", "hello", "ola", "saludos",
+];
+
 function normalizar(texto) {
   return (texto || "")
     .toLowerCase()
@@ -76,6 +84,11 @@ async function procesarMensaje(mensajeUsuario, sesion) {
   // 2) Si está dentro del flujo de cotización, lo maneja el cotizador (exacto).
   if (cotizador.enFlujo(sesion)) {
     return cotizador.manejar(texto, sesion);
+  }
+
+  // 2.5) Saludo "puro" → Rafa se presenta (cálido e instantáneo).
+  if (SALUDOS_EXACTOS.includes(texto)) {
+    return M.SALUDO_RAFA;
   }
 
   // 3) Opción 3 = iniciar cotización en línea.

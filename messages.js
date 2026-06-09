@@ -35,6 +35,11 @@ Responde con un *número*:
 *6*  📞 Hablar con un asesor
 *7*  🏅 Ver trabajos realizados`;
 
+// Saludo humano de "Rafa" (se usa cuando alguien solo saluda).
+const SALUDO_RAFA = `¡Hola! Soy *Rafa* 👋 un gusto atenderte en *RS Publicidad*.
+
+¿En qué te puedo ayudar hoy? Cuéntame qué necesitas: diseño, impresión, pendones, tarjetas, avisos, material POP… lo que tengas en mente y lo vemos. 😊`;
+
 /* ───────────────────────── 1 · SERVICIOS ───────────────────────── */
 
 const SERVICIOS = `📐 *Nuestros servicios*
@@ -231,6 +236,7 @@ const RESPUESTAS = {
 
 module.exports = {
   BIENVENIDA,
+  SALUDO_RAFA,
   NO_ENTIENDO,
   RESPUESTAS,
 };
