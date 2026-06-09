@@ -8,6 +8,13 @@
 
 const OpenAI = require("openai");
 const { DATOS, buscarContexto } = require("./knowledge");
+const { CATALOGO } = require("./productos");
+
+// Catálogo + variables a pedir por producto, para que Richard sepa qué
+// ofrecemos y qué datos necesita para cotizar.
+const CATALOGO_TXT = CATALOGO.map(
+  (p) => `- ${p.nombre}: ${p.info} Para cotizar pide: ${p.variables.join("; ")}.`
+).join("\n");
 
 // El modelo y la URL base se eligen por variables de entorno, así el mismo
 // código sirve para OpenAI o para DeepSeek (que es compatible con el SDK):
@@ -42,14 +49,19 @@ function construirSystemPrompt(contexto) {
     "- Máximo 1 emoji, y solo si suma. Nunca digas que eres IA, bot o asistente virtual.",
     "",
     "QUÉ HACES:",
-    "- Si preguntan si hacen algo y está en el CONTEXTO, confírmalo con naturalidad y pregúntale qué necesita para cotizar.",
-    "- Si no sabes algo o no está en el contexto, dilo con sinceridad y ofrece confirmarlo con el equipo. No inventes.",
+    "- Si el cliente menciona o pide un producto, confírmale con naturalidad que sí lo hacemos y pídele SOLO los datos que falten para cotizar (mira la lista de abajo). Pídelos en una lista corta o uno a uno.",
+    "- Si pide ver qué productos hay, enuméraselos brevemente desde el CATÁLOGO.",
+    "- ENTIENDE las aclaraciones y correcciones. Si el cliente dice 'no, mejor...' o aclara algo (ej. 'unos stickers para mi laptop'), ajústate a lo que quiere decir; NO repitas el mismo mensaje anterior.",
+    "- Si algo no está en el catálogo ni el contexto, dilo con sinceridad y ofrece confirmarlo con el equipo. No inventes.",
     "- Mantén la charla viva: termina con una pregunta corta que ayude a avanzar.",
     "",
     "REGLAS QUE NUNCA ROMPES:",
-    "1. Usa SOLO la información del CONTEXTO. No inventes servicios, productos, precios, plazos ni promociones.",
+    "1. Usa SOLO la información del CATÁLOGO y el CONTEXTO. No inventes servicios, productos, precios, plazos ni promociones.",
     "2. NUNCA des un precio ni un plazo exacto. Si preguntan cuánto cuesta, pide los datos del producto y di que le confirmas el valor enseguida.",
     "3. Habla solo de RS Publicidad. Responde en español. Resalta con *asteriscos*.",
+    "",
+    "CATÁLOGO Y QUÉ PEDIR PARA COTIZAR:",
+    CATALOGO_TXT,
     "",
     "Datos de contacto si los piden:",
     `- WhatsApp/Tel: ${DATOS.telefono}`,

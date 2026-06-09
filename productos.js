@@ -57,10 +57,10 @@ const CATALOGO = [
   },
   {
     clave: "vinilo",
-    nombre: "Vinilo adhesivo",
-    palabras: ["vinilo", "adhesivo", "microperforado", "sticker", "stickers"],
-    info: "Vinilos adhesivos y microperforados para vidrios, paredes y vehículos.",
-    variables: ["Medidas o área aproximada", "¿Qué cantidad?", "¿Dónde se va a instalar?"],
+    nombre: "Vinilo adhesivo y stickers",
+    palabras: ["vinilo", "adhesivo", "microperforado", "sticker", "stickers", "calcomania", "calcomanias"],
+    info: "Vinilos adhesivos, stickers y microperforados para vidrios, paredes, vehículos, portátiles y más.",
+    variables: ["Tamaño o medidas aproximadas", "¿Qué cantidad?", "¿Para qué superficie? (laptop, vidrio, pared, vehículo…)"],
   },
   {
     clave: "avisos",

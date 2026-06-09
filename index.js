@@ -107,49 +107,19 @@ function normalizar(texto) {
 async function procesarMensaje(mensajeUsuario, sesion) {
   const texto = normalizar(mensajeUsuario);
 
-  // 1) Saludo / reinicio → Richard se presenta.
+  // 1) Saludo / reinicio → Richard se presenta (template fijo, instantáneo).
   if (SALUDOS.includes(texto)) {
-    sesion.paso = null;
-    sesion.producto = null;
+    sesion.historial = [];
     return productos.SALUDO;
   }
 
-  // 2) Galería de trabajos (imágenes).
+  // 2) Galería de trabajos (imágenes) → se envían fotos reales.
   if (PALABRAS_TRABAJOS.some((p) => texto.includes(p))) {
     return trabajos.galeria();
   }
 
-  // 3) Si está dando las variables de un producto:
-  //    - si menciona OTRO producto distinto, cambia a ese.
-  //    - si no, toma su respuesta como las variables y cierra.
-  if (sesion.paso === "VARIABLES" && sesion.producto) {
-    const otro = productos.detectar(texto);
-    if (otro && otro.clave !== sesion.producto) {
-      sesion.producto = otro.clave;
-      return productos.plantilla(otro);
-    }
-    const p = productos.CATALOGO.find((x) => x.clave === sesion.producto);
-    sesion.paso = null;
-    sesion.producto = null;
-    if (p) return productos.cerrar(p, mensajeUsuario);
-  }
-
-  // 4) ¿Mencionó un producto puntual? → info + variables.
-  const prod = productos.detectar(texto);
-  if (prod) {
-    sesion.paso = "VARIABLES";
-    sesion.producto = prod.clave;
-    return productos.plantilla(prod);
-  }
-
-  // 5) ¿Pide ver todos los productos? → lista.
-  if (productos.pideLista(texto)) {
-    sesion.paso = "ELIGIENDO";
-    sesion.producto = null;
-    return productos.listar();
-  }
-
-  // 6) Cualquier otra cosa → Richard (LLM) breve y humano.
+  // 3) Todo lo demás lo lleva Richard (LLM), con el catálogo como contexto.
+  //    Así entiende correcciones y conversa natural, sin templates rígidos.
   const respuestaLLM = await llm.responder(mensajeUsuario, sesion.historial);
   if (respuestaLLM) {
     sesion.historial.push({ role: "user", content: mensajeUsuario });
