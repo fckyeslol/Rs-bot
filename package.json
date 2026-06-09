@@ -1,0 +1,17 @@
+{
+  "name": "rs-publicidad-whatsapp-bot",
+  "version": "1.0.0",
+  "description": "Bot de WhatsApp con respuestas automáticas para RS Publicidad (Twilio + Express)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "twilio": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

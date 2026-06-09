@@ -1,0 +1,19 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno con secretos (NO subir)
+.env
+.env.local
+
+# Logs
+npm-debug.log*
+logs/
+*.log
+
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# OJO: .env.example SÍ se sube (es la plantilla sin secretos)
