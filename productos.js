@@ -1,6 +1,6 @@
 // productos.js
 // ───────────────────────────────────────────────────────────────
-//  Flujo conversacional de Richard Castelar (equipo de diseño).
+//  Flujo conversacional de Richard Castellar (equipo de diseño).
 //  Aquí viven los TEMPLATES: saludo, lista de productos, y por cada
 //  producto su info corta + las variables que pedimos para cotizar.
 //
@@ -12,7 +12,7 @@ const { buscarProducto, formatPrecio } = require("./pricing");
 
 // ── Saludo (template) ──
 const SALUDO =
-  "¡Hola! Un gusto, te comunicas con *Richard Castelar* del equipo de diseño 🎨\n¿Cómo puedo ayudarte?";
+  "¡Hola! Un gusto, te comunicas con *Richard Castellar* del equipo de diseño 🎨\n¿Cómo puedo ayudarte?";
 
 // ── Catálogo ──
 // clave    : id interno (coincide con pricing.js cuando hay precio)

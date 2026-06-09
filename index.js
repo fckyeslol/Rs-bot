@@ -1,7 +1,7 @@
 // index.js
 // Bot de WhatsApp de RS Publicidad — Twilio + Express + OpenAI.
 //
-// 100% conversacional, con la persona de Richard Castelar (equipo de diseño).
+// 100% conversacional, con la persona de Richard Castellar (equipo de diseño).
 // Flujo:
 //   • Saludo            → se presenta Richard (template).
 //   • Producto puntual  → info del producto + variables para cotizar (template).
