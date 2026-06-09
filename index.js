@@ -178,8 +178,9 @@ app.post("/webhook", async (req, res) => {
   res.type("text/xml").send(twiml.toString());
 });
 
+const VERSION = "v4-cotizacion-automatica";
 app.get("/", (_req, res) => {
-  res.send("Bot de WhatsApp de RS Publicidad activo ✅");
+  res.send(`Bot de WhatsApp de RS Publicidad activo ✅ (${VERSION})`);
 });
 
 // ───────── Webhook de confirmación de pago (Botón Bancolombia) ─────────

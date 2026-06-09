@@ -31,15 +31,15 @@ const CATALOGO = [
     clave: "volantes",
     nombre: "Volantes",
     palabras: ["volante", "volantes", "flyer", "flyers"],
-    info: "Volantes publicitarios en distintos tamaños y papeles.",
-    variables: ["¿Qué cantidad?", "Tamaño (media carta, carta…)", "¿Una o dos caras?"],
+    info: "Volantes publicitarios.",
+    variables: ["¿Qué cantidad?", "Tamaño: media carta (estándar)", "¿Una o dos caras?"],
   },
   {
     clave: "afiches",
     nombre: "Afiches / pósters",
     palabras: ["afiche", "afiches", "poster", "posters"],
     info: "Afiches y pósters a todo color.",
-    variables: ["¿Qué cantidad?", "Tamaño (ej. 50x70 cm)", "¿Papel mate o brillante?"],
+    variables: ["¿Qué cantidad?", "Tamaño: 50x35 cm (estándar), o dime si necesitas otra medida", "¿Papel mate o brillante?"],
   },
   {
     clave: "pendon",
@@ -84,11 +84,23 @@ const CATALOGO = [
     variables: ["¿Qué artículo te interesa?", "¿Qué cantidad?", "¿Llevará logo o diseño?"],
   },
   {
+    clave: "editorial",
+    nombre: "Revistas, libros, agendas y catálogos",
+    palabras: ["revista", "revistas", "libro", "libros", "agenda", "agendas", "catalogo", "catalogos", "bitacora", "bitacoras"],
+    info: "Revistas, libros, agendas y catálogos.",
+    variables: [
+      "¿Qué cantidad?",
+      "Tamaño: carta, media carta u oficio",
+      "¿Cuántas páginas?",
+      "¿A color o blanco y negro?",
+    ],
+  },
+  {
     clave: "litografia",
     nombre: "Litografía y papelería",
-    palabras: ["brochure", "brochures", "plegable", "plegables", "carpeta", "carpetas", "revista", "revistas", "catalogo", "catalogos", "agenda", "agendas", "calendario", "calendarios", "talonario", "talonarios", "papeleria", "libro", "libros", "factura", "facturas"],
-    info: "Litografía y papelería: brochures, carpetas, revistas, agendas, calendarios, talonarios y más.",
-    variables: ["¿Qué producto necesitas?", "¿Qué cantidad?", "¿Tienes medidas o una referencia?"],
+    palabras: ["brochure", "brochures", "plegable", "plegables", "carpeta", "carpetas", "calendario", "calendarios", "talonario", "talonarios", "papeleria", "factura", "facturas"],
+    info: "Litografía y papelería: brochures, carpetas, plegables, calendarios, talonarios y más.",
+    variables: ["¿Qué producto necesitas?", "¿Qué cantidad?", "Tamaño: carta, media carta u oficio"],
   },
 ];
 
@@ -177,4 +189,40 @@ function calcularSiPosible(prod, texto) {
   return null;
 }
 
-module.exports = { SALUDO, CATALOGO, detectar, pideLista, listar, plantilla, cerrar };
+// Cotización por clave + datos estructurados (la usa la herramienta del LLM).
+// Devuelve { disponible, precioFmt, detalle } o { disponible:false, motivo }.
+function cotizar(clave, opts = {}) {
+  const { cantidad, ancho, alto } = opts;
+  const data = buscarProducto(clave);
+  if (!data) return { disponible: false, motivo: "producto sin precio configurado en pricing.js" };
+
+  if (data.modelo === "cantidad" && Array.isArray(data.paquetes)) {
+    if (!cantidad) return { disponible: false, motivo: "falta la cantidad" };
+    let mejor = null;
+    let dif = Infinity;
+    for (const pk of data.paquetes) {
+      const d = Math.abs(pk.unidades - cantidad);
+      if (d < dif) {
+        dif = d;
+        mejor = pk;
+      }
+    }
+    if (mejor && mejor.precio > 0) {
+      return { disponible: true, precioFmt: formatPrecio(mejor.precio), detalle: `${mejor.unidades} unidades` };
+    }
+    return { disponible: false, motivo: "precio aún no cargado en pricing.js" };
+  }
+
+  if (data.modelo === "m2") {
+    if (!(ancho > 0 && alto > 0)) return { disponible: false, motivo: "faltan las medidas (ancho x alto)" };
+    if (data.precioM2 > 0) {
+      const area = Math.max(ancho * alto, data.minM2 || 0);
+      return { disponible: true, precioFmt: formatPrecio(area * data.precioM2), detalle: `${area.toFixed(2)} m²` };
+    }
+    return { disponible: false, motivo: "precio aún no cargado en pricing.js" };
+  }
+
+  return { disponible: false, motivo: "producto sin precio configurado" };
+}
+
+module.exports = { SALUDO, CATALOGO, detectar, pideLista, listar, plantilla, cerrar, cotizar };

@@ -8,13 +8,37 @@
 
 const OpenAI = require("openai");
 const { DATOS, buscarContexto } = require("./knowledge");
-const { CATALOGO } = require("./productos");
+const productos = require("./productos");
+const { CATALOGO } = productos;
 
 // Catálogo + variables a pedir por producto, para que Richard sepa qué
 // ofrecemos y qué datos necesita para cotizar.
 const CATALOGO_TXT = CATALOGO.map(
   (p) => `- ${p.nombre}: ${p.info} Para cotizar pide: ${p.variables.join("; ")}.`
 ).join("\n");
+
+// Herramienta que Richard usa para obtener el precio real desde pricing.js.
+const CLAVES = CATALOGO.map((p) => p.clave);
+const TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "calcular_cotizacion",
+      description:
+        "Calcula el precio de un producto cuando ya tienes el producto y la cantidad (o las medidas). Úsala SIEMPRE antes de darle una cotización al cliente.",
+      parameters: {
+        type: "object",
+        properties: {
+          producto: { type: "string", enum: CLAVES, description: "clave del producto" },
+          cantidad: { type: "number", description: "número de unidades" },
+          ancho: { type: "number", description: "ancho en metros (gran formato)" },
+          alto: { type: "number", description: "alto en metros (gran formato)" },
+        },
+        required: ["producto"],
+      },
+    },
+  },
+];
 
 // El modelo y la URL base se eligen por variables de entorno, así el mismo
 // código sirve para OpenAI o para DeepSeek (que es compatible con el SDK):
@@ -50,14 +74,20 @@ function construirSystemPrompt(contexto) {
     "",
     "QUÉ HACES:",
     "- Si el cliente menciona o pide un producto, confírmale con naturalidad que sí lo hacemos y pídele SOLO los datos que falten para cotizar (mira la lista de abajo). Pídelos en una lista corta o uno a uno.",
+    "- Cuando preguntes por el TAMAÑO o medidas, OFRÉCELE SIEMPRE las opciones disponibles (las que están en el catálogo, ej. 'carta, media carta u oficio'). No preguntes de forma abierta: el cliente no conoce las medidas técnicas.",
     "- Si pide ver qué productos hay, enuméraselos brevemente desde el CATÁLOGO.",
     "- ENTIENDE las aclaraciones y correcciones. Si el cliente dice 'no, mejor...' o aclara algo (ej. 'unos stickers para mi laptop'), ajústate a lo que quiere decir; NO repitas el mismo mensaje anterior.",
-    "- Si algo no está en el catálogo ni el contexto, dilo con sinceridad y ofrece confirmarlo con el equipo. No inventes.",
-    "- Mantén la charla viva: termina con una pregunta corta que ayude a avanzar.",
+    "- Si algo no está en el catálogo ni el contexto, dilo con sinceridad. No inventes.",
+    "",
+    "CÓMO CIERRAS (cotización):",
+    "- Cuando ya tengas el producto y la cantidad (o las medidas), usa la herramienta calcular_cotizacion para obtener el precio.",
+    "- Si la herramienta da un precio, entrégale TÚ la cotización: un resumen corto (producto + especificaciones) y el precio.",
+    "- Si la herramienta dice que el precio no está disponible, dale el resumen de su pedido y dile que le confirmas el valor en un momento. TÚ lo atiendes.",
+    "- NUNCA derives al cliente a otro contacto, ni digas que 'el equipo lo contactará' ni le mandes otro número/correo para avanzar. Tú, Richard, eres quien lo atiende de principio a fin.",
     "",
     "REGLAS QUE NUNCA ROMPES:",
     "1. Usa SOLO la información del CATÁLOGO y el CONTEXTO. No inventes servicios, productos, precios, plazos ni promociones.",
-    "2. NUNCA des un precio ni un plazo exacto. Si preguntan cuánto cuesta, pide los datos del producto y di que le confirmas el valor enseguida.",
+    "2. NUNCA inventes un precio. El único precio válido es el que te dé la herramienta calcular_cotizacion.",
     "3. Habla solo de RS Publicidad. Responde en español. Resalta con *asteriscos*.",
     "",
     "CATÁLOGO Y QUÉ PEDIR PARA COTIZAR:",
@@ -91,15 +121,41 @@ async function responder(mensajeUsuario, historial = []) {
     { role: "user", content: mensajeUsuario },
   ];
 
+  const opciones = {
+    model: MODELO,
+    messages: mensajes,
+    temperature: 0.7,
+    max_tokens: 220, // mensajes cortos, estilo chat
+    tools: TOOLS,
+  };
+
   try {
-    const resp = await api.chat.completions.create({
-      model: MODELO,
-      messages: mensajes,
-      temperature: 0.7,
-      max_tokens: 220, // mensajes cortos, estilo chat
-    });
-    const texto = resp.choices?.[0]?.message?.content?.trim();
-    return texto || null;
+    let resp = await api.chat.completions.create(opciones);
+    let msg = resp.choices?.[0]?.message;
+
+    // Si Richard pide cotizar, ejecutamos la herramienta y volvemos a pedirle
+    // la respuesta final con el precio ya calculado.
+    if (msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+      mensajes.push(msg);
+      for (const tc of msg.tool_calls) {
+        let args = {};
+        try {
+          args = JSON.parse(tc.function.arguments || "{}");
+        } catch (_e) {
+          args = {};
+        }
+        const resultado = productos.cotizar(args.producto, args);
+        mensajes.push({
+          role: "tool",
+          tool_call_id: tc.id,
+          content: JSON.stringify(resultado),
+        });
+      }
+      resp = await api.chat.completions.create({ ...opciones, messages: mensajes });
+      msg = resp.choices?.[0]?.message;
+    }
+
+    return msg?.content?.trim() || null;
   } catch (err) {
     console.error("Error llamando a OpenAI:", err.message);
     return null;
