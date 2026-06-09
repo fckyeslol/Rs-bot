@@ -29,10 +29,11 @@ Responde con un *número*:
 
 *1*  📐 Servicios
 *2*  📦 Productos / catálogo
-*3*  💰 Cotizar un proyecto
+*3*  💰 Cotizar en línea
 *4*  🏢 Quiénes somos
 *5*  📍 Ubicación y contacto
-*6*  📞 Hablar con un asesor`;
+*6*  📞 Hablar con un asesor
+*7*  🏅 Ver trabajos realizados`;
 
 /* ───────────────────────── 1 · SERVICIOS ───────────────────────── */
 
@@ -169,7 +170,9 @@ Una empresa dedicada al diseño publicitario y a la producción de impresos con 
 
 Contamos con un equipo multidisciplinario y talentoso, con atención personalizada: asesoría y acompañamiento en todo el proceso para alcanzar tus objetivos de mercado.
 
-🏅 *Trabajos destacados:* Centro Médico CMC (letrero 3D), fachadas Nazareth & Uniminuto, avisos Grupo Bosc · Chiko's · Good Mood, stand Salud Familiar IPS y más, en Barranquilla y la región Caribe.${PIE}`;
+🏅 *Trabajos destacados:* Centro Médico CMC (letrero 3D), fachadas Nazareth & Uniminuto, avisos Grupo Bosc · Chiko's · Good Mood, stand Salud Familiar IPS y más, en Barranquilla y la región Caribe.
+
+📸 Escribe *7* para ver fotos de nuestros trabajos.${PIE}`;
 
 /* ───────────────────────── 5 · UBICACIÓN ───────────────────────── */
 
