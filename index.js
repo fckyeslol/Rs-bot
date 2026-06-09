@@ -25,6 +25,43 @@ app.use(express.json()); // para el webhook de pagos (JSON)
 
 const { MessagingResponse } = twilio.twiml;
 
+// ───────── Envío de mensajes salientes (Twilio REST) ─────────
+// Se usa para el "saludo diferido": responder más tarde, no en el acto.
+let twilioClient = null;
+function getTwilioClient() {
+  if (twilioClient) return twilioClient;
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+    twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  }
+  return twilioClient;
+}
+
+// ¿Podemos enviar mensajes salientes? (necesario para el saludo diferido)
+function puedeEnviar() {
+  return Boolean(getTwilioClient() && process.env.TWILIO_WHATSAPP_FROM);
+}
+
+async function enviarWhatsapp(to, body) {
+  const c = getTwilioClient();
+  if (!c) return;
+  await c.messages.create({ from: process.env.TWILIO_WHATSAPP_FROM, to, body });
+}
+
+// Retraso del saludo de apertura: aleatorio entre MIN y MAX (ms) para que
+// se sienta humano. Por defecto entre 40s y 70s. Editable por env.
+const SALUDO_DELAY_MIN_MS = Number(process.env.SALUDO_DELAY_MIN_MS || 40000);
+const SALUDO_DELAY_MAX_MS = Number(process.env.SALUDO_DELAY_MAX_MS || 70000);
+
+// ¿Está activo el saludo diferido? (MAX = 0 lo desactiva → saludo al instante)
+const saludoDiferidoActivo = () => SALUDO_DELAY_MAX_MS > 0;
+
+// Calcula un retraso aleatorio dentro del rango.
+function delaySaludoMs() {
+  const min = Math.max(0, SALUDO_DELAY_MIN_MS);
+  const max = Math.max(min, SALUDO_DELAY_MAX_MS);
+  return Math.floor(min + Math.random() * (max - min));
+}
+
 // ───────── Sesiones en memoria ─────────
 const sesiones = new Map();
 const SESION_TTL_MS = 30 * 60 * 1000;
@@ -33,7 +70,7 @@ function obtenerSesion(id) {
   const ahora = Date.now();
   let s = sesiones.get(id);
   if (!s) {
-    s = { paso: null, producto: null, historial: [], visto: ahora };
+    s = { paso: null, producto: null, historial: [], saludado: false, visto: ahora };
     sesiones.set(id, s);
   }
   s.visto = ahora;
@@ -132,6 +169,24 @@ app.post("/webhook", async (req, res) => {
   const id = req.body.From || "anon";
   const entrante = req.body.Body || "";
   const sesion = obtenerSesion(id);
+
+  // Saludo de APERTURA con retraso: si es el primer mensaje de la sesión y es
+  // un saludo, confirmamos a Twilio al instante (sin texto) y enviamos el
+  // saludo 1 minuto después. El resto de la conversación va fluido.
+  const esSaludo = SALUDOS.includes(normalizar(entrante));
+  if (esSaludo && !sesion.saludado && puedeEnviar() && saludoDiferidoActivo()) {
+    sesion.saludado = true;
+    sesion.paso = null;
+    sesion.producto = null;
+    res.type("text/xml").send(new MessagingResponse().toString()); // ack vacío
+    setTimeout(() => {
+      enviarWhatsapp(id, productos.SALUDO).catch((e) =>
+        console.error("Error enviando saludo diferido:", e.message)
+      );
+    }, delaySaludoMs());
+    return;
+  }
+  sesion.saludado = true;
 
   let respuesta;
   try {
